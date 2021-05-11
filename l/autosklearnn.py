@@ -7,7 +7,7 @@ from sklearn.datasets import fetch_openml
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
-
+import numpy
 
 if __name__ == "__main__":
         eu_red_list_without_unknown_population_trends = pd.read_csv("/Users/kristianjespersen/Documents/IKT/6_semester/ITMAL/itmal_4_redlist/datasets_ready/eu_red_list_without_unknown_population_trends.csv")
@@ -17,6 +17,7 @@ if __name__ == "__main__":
         encoded_X = OneHotEncoder(handle_unknown='ignore').fit_transform(X)
         
 
+        
         encoded_y = LabelEncoder().fit_transform(y)
 
 
