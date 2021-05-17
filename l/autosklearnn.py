@@ -15,9 +15,6 @@ if __name__ == "__main__":
         X = eu_red_list_without_unknown_population_trends.iloc[:,:-1]
         y = eu_red_list_without_unknown_population_trends.iloc[:,-1]
         encoded_X = OneHotEncoder(handle_unknown='ignore').fit_transform(X)
-        
-
-        
         encoded_y = LabelEncoder().fit_transform(y)
 
 
