@@ -35,29 +35,44 @@ class ClassifierCrossVal:
     #Will try all combinations of models and encoders
     def run(self):
         for encoder, model in iter_product(self.encoders, self.models):
-            ############### ENCODING ###############
-            X_encoded = None
-            y_encoded = None
-            if self.is_encoder_y_dependent(encoder):
-                X_encoded, y_encoded = self._encode_y_dependent(self.X,self.y, encoder)
-            else:
-                X_encoded, y_encoded = self._encode_y_independent(self.X,self.y, encoder)
-
+            print("***************************************************************************")
+            print("VALIDATING: ",encoder.__class__.__name__ + " + " + model.__class__.__name__ )
+            print("***************************************************************************")
             ############### CROSS_VAL ###############
             confusion_matrixes = []
             scores = []
             
             folder = StratifiedKFold(n_splits=self.k_folds)
-            for training_index, testing_index in folder.split(X_encoded,y_encoded):
-                X_train, X_test = X_encoded[training_index], X_encoded[testing_index]
-                y_train, y_test = y_encoded[training_index], y_encoded[testing_index]
-                model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
-                confusion_matrixes.append(confusion_matrix(y_test, y_pred,normalize='true'))
-                #Scoring:
+            for training_index, testing_index in folder.split(self.X,self.y):
+                X_train, X_test = self.X.iloc[training_index], self.X.iloc[testing_index]
+                y_train, y_test = self.y.iloc[training_index], self.y.iloc[testing_index]
+
+
+                ############### ENCODING ###############
+                X_train_encoded = None
+                y_train_encoded = None
+                X_test_encoded = None
+                y_test_encoded = None
+                if self.is_encoder_y_dependent(encoder):
+                    X_train_encoded, y_train_encoded = self._encode_y_dependent(X_train,y_train, encoder)
+                    X_test_encoded, y_test_encoded = self._encode_y_dependent(X_test,y_test, encoder)
+                else:
+                    X_train_encoded, y_train_encoded = self._encode_y_independent(X_train,y_train, encoder)
+                    X_test_encoded, y_test_encoded = self._encode_y_independent(X_test,y_test, encoder)
+                
+                X_train_encoded = X_train_encoded.reindex(labels=X_test_encoded.columns,axis=1)
+                X_test_encoded = X_test_encoded.reindex(labels=X_train_encoded.columns,axis=1)
+                y_train_encoded = y_train_encoded.values.ravel() 
+                y_test_encoded = y_test_encoded.values.ravel()
+
+                ############### FIT X SCORE ###############
+
+                model.fit(X_train_encoded, y_train_encoded)
+                y_pred = model.predict(X_test_encoded)
+                confusion_matrixes.append(confusion_matrix(y_test_encoded, y_pred,normalize='true'))
                 scoring_dict = {}
                 for scoring_method in self.scoring_methods:
-                    scoring_dict[scoring_method[0]] = scoring_method[1](y_test,y_pred)
+                    scoring_dict[scoring_method[0]] = scoring_method[1](y_test_encoded,y_pred)
                 scores.append(scoring_dict)
             #Print:
             mean_conf_matrix = np.mean(confusion_matrixes, axis=0)
@@ -94,14 +109,14 @@ class ClassifierCrossVal:
 
     def _encode_y_dependent(self, X, y, encoder):
         ordinal_encoder =  ce.OrdinalEncoder(cols=['europeanRegionalRedListCategory'], mapping=[{'col': 'europeanRegionalRedListCategory',      'mapping': self.target_mapping }], return_df=True)
-        y_encoded = ordinal_encoder.fit_transform(y).values
-        X_encoded = encoder.fit_transform(X, y_encoded).values
+        y_encoded = ordinal_encoder.fit_transform(y)
+        X_encoded = encoder.fit_transform(X, y_encoded)
         return (X_encoded, y_encoded)
     
     def _encode_y_independent(self, X, y, encoder):
         ordinal_encoder =  ce.OrdinalEncoder(cols=['europeanRegionalRedListCategory'], mapping=[{'col': 'europeanRegionalRedListCategory',      'mapping': self.target_mapping }], return_df=True)
-        y_encoded = ordinal_encoder.fit_transform(y).values
-        X_encoded = encoder.fit_transform(X).values
+        y_encoded = ordinal_encoder.fit_transform(y)
+        X_encoded = encoder.fit_transform(X)
         return (X_encoded, y_encoded)
 
     
