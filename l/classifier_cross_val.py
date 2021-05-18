@@ -5,6 +5,8 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from numpy.core.fromnumeric import product
 import numpy as np
 import category_encoders as ce
+import statistics as stats
+from functools import reduce, wraps
 
 
 class ClassifierCrossVal:
@@ -55,16 +57,30 @@ class ClassifierCrossVal:
                 #Scoring:
                 scoring_dict = {}
                 for scoring_method in self.scoring_methods:
-                    scoring_dict[scoring_method.__name__] = scoring_method(y_test,y_pred)
+                    scoring_dict[scoring_method[0]] = scoring_method[1](y_test,y_pred)
                 scores.append(scoring_dict)
             #Print:
             mean_conf_matrix = np.mean(confusion_matrixes, axis=0)
+            mean_scores = self._avg_dicts(scores)
+            print(mean_scores)
             to_display = ConfusionMatrixDisplay(mean_conf_matrix, display_labels=self.target_mapping.keys())
             to_display.plot(values_format='.1f')
-            to_display.ax_.set_title(encoder.__class__.__name__ + " + " + model.__class__.__name__)
+            to_display.ax_.set_title(encoder.__class__.__name__ + " + " + model.__class__.__name__ + "\n" + str(mean_scores))
+           
             
 
-
+    def _add_dicts(self,dict_a, dict_b):
+        sum_dict = {}
+        for key in dict_a.keys():
+            sum_dict[key] = dict_a[key] + dict_b[key]
+        return sum_dict
+    
+    def _avg_dicts(self, list_of_dicts):
+        total_dict = reduce(self._add_dicts, list_of_dicts)
+        avg_dict = {}
+        for key in total_dict.keys():
+            avg_dict[key] = round(total_dict[key] / len(list_of_dicts),3)
+        return avg_dict
 
     def is_encoder_y_dependent(self,encoder):
         signature = str(inspect.signature(encoder.transform))
