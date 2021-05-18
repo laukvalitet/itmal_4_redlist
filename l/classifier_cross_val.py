@@ -65,7 +65,7 @@ class ClassifierCrossVal:
                 y_train_encoded = y_train_encoded.values.ravel() 
                 y_test_encoded = y_test_encoded.values.ravel()
 
-                ############### FIT X SCORE ###############
+                ############### FIT AND SCORE ###############
 
                 model.fit(X_train_encoded, y_train_encoded)
                 y_pred = model.predict(X_test_encoded)
